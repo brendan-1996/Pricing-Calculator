@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dragonfruit Pricing Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface-1: #111118;
+    --surface-2: #16161e;
+    --surface-3: #1c1c26;
+    --border-1: #1a1a22;
+    --border-2: #2a2a35;
+    --text-primary: #e8e6e1;
+    --text-secondary: #a0a09a;
+    --text-muted: #706f6a;
+    --text-dim: #504f4a;
+    --text-ghost: #3a3a42;
+    --accent: #c7f06e;
+    --accent-dim: #c7f06e40;
+    --warn: #f0c96e;
+    --danger: #f06e6e;
+    --font-body: 'DM Sans', 'Helvetica Neue', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    padding: 32px 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Subtle noise overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { max-width: 960px; margin: 0 auto; position: relative; z-index: 1; }
+
+  /* Header */
+  .header { margin-bottom: 40px; }
+  .header-row { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  .header-row .icon { font-size: 28px; }
+  .header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: #fff; }
+  .header .subtitle { font-size: 14px; color: var(--text-muted); padding-left: 44px; }
+
+  /* Grid */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+
+  /* Labels */
+  .label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 8px;
+  }
+
+  /* Controls row */
+  .controls { display: flex; gap: 12px; margin-bottom: 20px; }
+  .controls > div { flex: 1; }
+
+  select {
+    width: 100%; padding: 10px 12px;
+    background: var(--surface-2); border: 1px solid var(--border-2);
+    border-radius: 8px; color: var(--text-primary); font-size: 14px;
+    font-family: var(--font-body); cursor: pointer; outline: none;
+    transition: border-color 0.15s;
+  }
+  select:hover { border-color: var(--accent-dim); }
+  select option { background: var(--surface-2); }
+
+  .margin-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .margin-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+  .margin-val {
+    font-family: var(--font-mono); font-size: 14px;
+    color: var(--accent); min-width: 40px; text-align: right;
+  }
+
+  /* Presets */
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
+  .preset-btn {
+    padding: 6px 12px; background: var(--surface-3);
+    border: 1px solid var(--border-2); border-radius: 6px;
+    color: var(--text-secondary); font-size: 12px; cursor: pointer;
+    font-family: var(--font-body); transition: all 0.15s; line-height: 1.4;
+  }
+  .preset-btn:hover {
+    background: #252530; color: var(--text-primary);
+    border-color: var(--accent-dim);
+  }
+
+  /* Deliverable rows */
+  .deliverables { display: flex; flex-direction: column; gap: 8px; }
+  .deliv-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: var(--surface-1);
+    border: 1px solid var(--border-1); border-radius: 10px;
+    transition: all 0.2s;
+  }
+  .deliv-row.active { background: var(--surface-2); border-color: var(--border-2); }
+  .deliv-info { display: flex; align-items: center; gap: 10px; }
+  .deliv-icon { font-size: 18px; }
+  .deliv-label { font-size: 14px; font-weight: 500; color: var(--text-muted); transition: color 0.2s; }
+  .deliv-row.active .deliv-label { color: var(--text-primary); }
+  .deliv-weight { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
+  .deliv-controls { display: flex; align-items: center; gap: 8px; }
+
+  .qty-btn {
+    width: 30px; height: 30px; border-radius: 6px;
+    background: var(--surface-3); border: 1px solid var(--border-2);
+    color: var(--text-muted); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; line-height: 1;
+  }
+  .qty-btn:hover { background: #252530; color: var(--text-primary); border-color: var(--accent-dim); }
+
+  .qty-input {
+    width: 56px; text-align: center; padding: 6px 4px;
+    background: #0d0d14; border: 1px solid var(--border-2); border-radius: 6px;
+    color: var(--text-dim); font-size: 16px; font-family: var(--font-mono);
+    font-weight: 700; outline: none; transition: color 0.2s;
+    -moz-appearance: textfield;
+  }
+  .qty-input::-webkit-inner-spin-button,
+  .qty-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .qty-input.active { color: var(--accent); }
+
+  /* Quote card */
+  .quote-card {
+    background: linear-gradient(135deg, #1a1f12 0%, #141816 50%, #121418 100%);
+    border: 1px solid #2a3520; border-radius: 16px;
+    padding: 32px 28px; margin-bottom: 20px;
+    position: relative; overflow: hidden;
+    animation: fadeIn 0.4s ease;
+  }
+  .quote-card .glow {
+    position: absolute; top: -40px; right: -40px;
+    width: 160px; height: 160px;
+    background: radial-gradient(circle, #c7f06e10 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .quote-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); margin-bottom: 4px; font-weight: 500;
+  }
+  .quote-price {
+    font-family: var(--font-mono); font-size: 48px; font-weight: 700;
+    color: var(--accent); line-height: 1.1; margin-bottom: 4px;
+    letter-spacing: -2px; transition: all 0.3s;
+  }
+  .quote-annual { font-size: 14px; color: var(--text-muted); }
+  .quote-annual span { color: var(--text-dim); }
+  .quote-stats { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .stat-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-dim); margin-bottom: 2px;
+  }
+  .stat-value { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--text-primary); }
+
+  /* Breakdown panel */
+  .panel {
+    background: var(--surface-1); border: 1px solid #1e1e28;
+    border-radius: 14px; padding: 24px 24px 16px; margin-bottom: 20px;
+  }
+  .panel-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); margin-bottom: 16px; font-weight: 500;
+  }
+  .breakdown-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--border-1);
+  }
+  .breakdown-row:last-of-type { border-bottom: none; }
+  .breakdown-row .bl { font-size: 13px; color: var(--text-muted); }
+  .breakdown-row .bv {
+    font-family: var(--font-mono); font-size: 14px;
+    font-weight: 500; color: var(--text-secondary);
+  }
+  .breakdown-row .bv.bright { color: var(--text-primary); }
+  .breakdown-total {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0 4px; border-top: 2px solid var(--accent-dim); margin-top: 8px;
+  }
+  .breakdown-total .bl { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  .breakdown-total .bv {
+    font-family: var(--font-mono); font-size: 20px;
+    font-weight: 700; color: var(--accent);
+  }
+
+  /* Context panel */
+  .context-row { display: flex; justify-content: space-between; padding: 6px 0; }
+  .context-row .cl { font-size: 12px; color: var(--text-dim); }
+  .context-row .cv { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
+
+  /* Footer */
+  .footer { text-align: center; margin-top: 32px; }
+  .footer p { font-size: 11px; color: var(--text-ghost); }
+
+  /* Animation */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .left-col { animation: fadeIn 0.4s ease 0.1s both; }
+  .right-col { animation: fadeIn 0.4s ease 0.2s both; }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="header">
+    <div class="header-row">
+      <span class="icon">🍉</span>
+      <h1>Dragonfruit Pricing Calculator</h1>
+    </div>
+    <p class="subtitle">Enter deliverables below — quote updates instantly</p>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT: Inputs -->
+    <div class="left-col">
+      <div class="controls">
+        <div>
+          <label class="label" style="margin-bottom:6px">Cost Month</label>
+          <select id="monthSelect"></select>
+        </div>
+        <div>
+          <label class="label" style="margin-bottom:6px">Target Margin</label>
+          <div class="margin-row">
+            <input type="range" id="marginSlider" min="20" max="70" value="50">
+            <span class="margin-val" id="marginVal">50%</span>
+          </div>
+        </div>
+      </div>
+
+      <label class="label">Quick Presets</label>
+      <div class="presets" id="presets"></div>
+
+      <label class="label" style="margin-bottom:12px">Client Deliverables</label>
+      <div class="deliverables" id="deliverables"></div>
+    </div>
+
+    <!-- RIGHT: Output -->
+    <div class="right-col">
+      <div class="quote-card">
+        <div class="glow"></div>
+        <div class="quote-label">Monthly Quote Price</div>
+        <div class="quote-price" id="quotePrice">$0</div>
+        <div class="quote-annual"><span id="quoteAnnual">$0</span><span> / year</span></div>
+        <div class="quote-stats">
+          <div>
+            <div class="stat-label">Weighted Deliverables</div>
+            <div class="stat-value" id="weightedDelivs">0.0</div>
+          </div>
+          <div>
+            <div class="stat-label">Effective Margin</div>
+            <div class="stat-value" id="effectiveMargin">0.0%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Price Breakdown</div>
+        <div class="breakdown-row"><span class="bl">Deliverable Cost (our cost)</span><span class="bv" id="bCost">$0</span></div>
+        <div class="breakdown-row"><span class="bl">Margin Markup</span><span class="bv" id="bMarkup">+$0</span></div>
+        <div class="breakdown-row"><span class="bl">Deliverable Price</span><span class="bv bright" id="bPrice">$0</span></div>
+        <div class="breakdown-row"><span class="bl">Baseline Retainer Fee</span><span class="bv" id="bFee">+$0</span></div>
+        <div class="breakdown-total"><span class="bl">Final Monthly Quote</span><span class="bv" id="bTotal">$0</span></div>
+      </div>
+
+      <div class="panel" style="padding:20px 24px">
+        <div class="panel-title" id="contextTitle">Cost Model Context</div>
+        <div class="context-row"><span class="cl">Total Monthly Operating Cost</span><span class="cv" id="cOpCost">$0</span></div>
+        <div class="context-row"><span class="cl">Total Weighted Deliverables</span><span class="cv" id="cDelivs">0</span></div>
+        <div class="context-row"><span class="cl">Base Cost / Deliverable</span><span class="cv" id="cBase">$0</span></div>
+        <div class="context-row"><span class="cl">Our Margin ($)</span><span class="cv" id="cMargin">$0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Dragonfruit Media — Cost model data as of Feb 2026 • Pricing Calculator v2</p>
+  </div>
+</div>
+
+<script>
+const TYPES = [
+  { key: "longform",  label: "Longform Videos",        weight: 1.0,    icon: "🎬" },
+  { key: "shortform", label: "Shortform Videos",        weight: 0.0833, icon: "📱" },
+  { key: "podcast",   label: "Podcasts",                weight: 0.5,    icon: "🎙️" },
+  { key: "thumbnail", label: "Thumbnails Only",         weight: 0.07,   icon: "🖼️" },
+  { key: "heavyAnim", label: "Heavy Animations",        weight: 0.25,   icon: "✨" },
+  { key: "postOnly",  label: "Post-Production Only",    weight: 0.65,   icon: "🎞️" },
+  { key: "preOnly",   label: "Pre-Production Only",     weight: 0.45,   icon: "📋" },
+];
+
+const MONTHS = [
+  { key: "jan", label: "January",  cost: 330167.40, deliverables: 154.86 },
+  { key: "feb", label: "February", cost: 351396.60, deliverables: 163.2 },
+  { key: "mar", label: "March",    cost: 371428.95, deliverables: 163.2 },
+  { key: "apr", label: "April",    cost: 394392.47, deliverables: 163.2 },
+  { key: "may", label: "May",      cost: 395852.55, deliverables: 163.2 },
+  { key: "jun", label: "June",     cost: 385726.54, deliverables: 163.2 },
+];
+
+const PRESETS = [
+  { name: "Standard (4 LF + 30 SF)",    longform: 4, shortform: 30,  podcast: 0, thumbnail: 0, heavyAnim: 0, postOnly: 0, preOnly: 0 },
+  { name: "Premium (6 LF + 45 SF)",     longform: 6, shortform: 45,  podcast: 0, thumbnail: 0, heavyAnim: 0, postOnly: 0, preOnly: 0 },
+  { name: "Enterprise (8 LF + 190 SF)", longform: 8, shortform: 190, podcast: 0, thumbnail: 0, heavyAnim: 0, postOnly: 0, preOnly: 0 },
+  { name: "LF Only (4 LF)",             longform: 4, shortform: 0,   podcast: 0, thumbnail: 0, heavyAnim: 0, postOnly: 0, preOnly: 0 },
+  { name: "SF Only (90 SF)",            longform: 0, shortform: 90,  podcast: 0, thumbnail: 0, heavyAnim: 0, postOnly: 0, preOnly: 0 },
+];
+
+// State
+const qty = { longform: 4, shortform: 30, podcast: 0, thumbnail: 0, heavyAnim: 0, postOnly: 0, preOnly: 0 };
+
+const fmt = n => n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+// Build month select
+const monthSelect = document.getElementById("monthSelect");
+MONTHS.forEach(m => {
+  const opt = document.createElement("option");
+  opt.value = m.key; opt.textContent = m.label + " 2026";
+  monthSelect.appendChild(opt);
+});
+monthSelect.value = "apr";
+monthSelect.addEventListener("change", recalc);
+
+// Margin slider
+const marginSlider = document.getElementById("marginSlider");
+const marginVal = document.getElementById("marginVal");
+marginSlider.addEventListener("input", () => { marginVal.textContent = marginSlider.value + "%"; recalc(); });
+
+// Build presets
+const presetsEl = document.getElementById("presets");
+PRESETS.forEach(p => {
+  const btn = document.createElement("button");
+  btn.className = "preset-btn"; btn.textContent = p.name;
+  btn.addEventListener("click", () => {
+    TYPES.forEach(t => { qty[t.key] = p[t.key] || 0; });
+    renderDeliverables(); recalc();
+  });
+  presetsEl.appendChild(btn);
+});
+
+// Build deliverables
+const delivEl = document.getElementById("deliverables");
+function renderDeliverables() {
+  delivEl.innerHTML = "";
+  TYPES.forEach(d => {
+    const v = qty[d.key] || 0;
+    const active = v > 0;
+    const row = document.createElement("div");
+    row.className = "deliv-row" + (active ? " active" : "");
+    row.innerHTML = `
+      <div class="deliv-info">
+        <span class="deliv-icon">${d.icon}</span>
+        <div>
+          <div class="deliv-label">${d.label}</div>
+          <div class="deliv-weight">weight: ${d.weight}x</div>
+        </div>
+      </div>
+      <div class="deliv-controls">
+        <button class="qty-btn" data-key="${d.key}" data-dir="-1">−</button>
+        <input class="qty-input${active ? " active" : ""}" type="number" min="0" value="${v}" data-key="${d.key}">
+        <button class="qty-btn" data-key="${d.key}" data-dir="1">+</button>
+      </div>
+    `;
+    delivEl.appendChild(row);
+  });
+
+  // Event delegation
+  delivEl.querySelectorAll(".qty-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.key;
+      const dir = parseInt(btn.dataset.dir);
+      qty[key] = Math.max(0, (qty[key] || 0) + dir);
+      renderDeliverables(); recalc();
+    });
+  });
+  delivEl.querySelectorAll(".qty-input").forEach(input => {
+    input.addEventListener("input", () => {
+      qty[input.dataset.key] = Math.max(0, parseInt(input.value) || 0);
+      // Don't re-render (would lose focus), just recalc
+      const row = input.closest(".deliv-row");
+      const active = qty[input.dataset.key] > 0;
+      row.className = "deliv-row" + (active ? " active" : "");
+      input.className = "qty-input" + (active ? " active" : "");
+      recalc();
+    });
+  });
+}
+
+function recalc() {
+  const month = MONTHS.find(m => m.key === monthSelect.value);
+  const marginPct = parseInt(marginSlider.value);
+
+  const baseCostPerDeliv = month.cost / month.deliverables;
+  const marginMultiplier = 1 / (1 - marginPct / 100);
+  const mgmtOverhead = month.cost * 0.2155;
+  const baselineFee = mgmtOverhead / (month.deliverables / 6.5);
+
+  let weightedDelivs = 0;
+  TYPES.forEach(d => { weightedDelivs += (qty[d.key] || 0) * d.weight; });
+
+  const deliverableCost = weightedDelivs * baseCostPerDeliv;
+  const deliverablePrice = deliverableCost * marginMultiplier;
+  const finalPrice = baselineFee + deliverablePrice;
+  const annualPrice = finalPrice * 12;
+  const ourMargin = finalPrice - deliverableCost;
+  const effectiveMarginPct = finalPrice > 0 ? (ourMargin / finalPrice) * 100 : 0;
+
+  // Update DOM
+  document.getElementById("quotePrice").textContent = fmt(finalPrice);
+  document.getElementById("quoteAnnual").textContent = fmt(annualPrice);
+  document.getElementById("weightedDelivs").textContent = weightedDelivs.toFixed(1);
+
+  const emEl = document.getElementById("effectiveMargin");
+  emEl.textContent = effectiveMarginPct.toFixed(1) + "%";
+  emEl.style.color = effectiveMarginPct >= 40 ? "var(--accent)" : effectiveMarginPct >= 20 ? "var(--warn)" : "var(--danger)";
+
+  document.getElementById("bCost").textContent = fmt(deliverableCost);
+  document.getElementById("bMarkup").textContent = "+" + fmt(deliverablePrice - deliverableCost);
+  document.getElementById("bPrice").textContent = fmt(deliverablePrice);
+  document.getElementById("bFee").textContent = "+" + fmt(baselineFee);
+  document.getElementById("bTotal").textContent = fmt(finalPrice);
+
+  document.getElementById("contextTitle").textContent = "Cost Model Context (" + month.label + ")";
+  document.getElementById("cOpCost").textContent = fmt(month.cost);
+  document.getElementById("cDelivs").textContent = month.deliverables.toFixed(1);
+  document.getElementById("cBase").textContent = fmt(baseCostPerDeliv);
+  document.getElementById("cMargin").textContent = fmt(ourMargin);
+}
+
+// Init
+renderDeliverables();
+recalc();
+</script>
+</body>
+</html>
